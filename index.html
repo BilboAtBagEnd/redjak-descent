@@ -1,0 +1,322 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>RedJak's Open Group Generator</title>
+
+<style>
+img.trait { 
+  vertical-align: middle;
+}
+label { 
+  display: inline-block;
+  width: 10em;
+  text-align: right;
+}
+
+#aov-deck-pane { 
+  display: hidden;
+}
+
+#overlord-deck{ 
+  background-color: black;
+  width: 300px;
+  height: 465px;
+}
+
+.deck-drawn:before { 
+  content: 'Drawn: ';
+}
+
+.deck-left:before {
+  content: 'Left: ';
+}
+
+</style>
+
+<script src="js/jquery-2.1.1.min.js"></script>
+<script src="js/ndescent.js"></script>
+
+<script>
+OVERLORD_CLASS_DECKS = [
+"Infector", "Magus", "Punisher", "Saboteur", "Shadowmancer", "Warlord"
+];
+PLOT_DECKS = [
+"Alic Farrow", "Ariad", "Bal'Gareth", "Baron Zachareth", "Belthir",
+  "Eliza Farrow", "Gargan Mirklace", "Merrick Farrow", "Queen Ariad", 
+  "Raythen", "Rylan Olliven", "Serena", "Skarn", "Splig", 
+  "Tristayne Olliven", "Valyndra", "Verminous"
+];
+
+MONSTERS = {
+    "Arachyura": { set: "LoR", traits: ["cursed", "wilderness"] },
+    "Bane Spider": { set: "OotO", traits: ["cave", "dark"] },
+    "Barghest": { set: "2E", traits: ["dark", "wilderness"] },
+    "Beastman": { set: "OotO", traits: ["mountain", "wilderness"] },
+    "Blood Ape": { set: "1E", traits: ["cave", "hot"] },
+    "Carrion Drake": { set: "LoR", traits: ["dark", "water"] },
+    "Cave Spider": { set: "2E", traits: ["cave", "wilderness"] },
+    "Changeling": { set: "SoN", traits: ["civilized", "cursed"] },
+    "Chaos Beast": { set: "CoD", traits: ["cursed", "dark"] },
+    "Crypt Dragon": { set: "1E", traits: ["cursed", "dark"] },
+    "Dark Priest": { set: "1E", traits: ["civilized", "cursed"] },
+    "Deep Elf": { set: "1E", traits: ["cave", "dark"] },
+    "Demon Lord": { set: "1E", traits: ["cursed", "hot"] },
+    "Elemental": { set: "2E", traits: ["cold", "hot"] },
+    "Ettin": { set: "2E", traits: ["cave", "mountain"] },
+    "Ferrox": { set: "1E", traits: ["cave", "water"] },
+    "Fire Imps": { set: "LotW", traits: ["cursed", "hot"] },
+    "Flesh Moulder": { set: "2E", traits: ["civilized", "cursed"] },
+    "Giant": { set: "CoD", traits: ["mountain", "wilderness"] },
+    "Goblin Archer": { set: "2E", traits: ["building", "cave"] },
+    "Goblin Witcher": { set: "LoR", traits: ["building", "cursed"] },
+    "Golem": { set: "1E", traits: ["building", "mountain"] },
+    "Harpy": { set: "TF", traits: ["mountain", "wilderness"] },
+    "Hellhound": { set: "1E", traits: ["hot"]}, 
+    "Hybrid Sentinel": { set: "LotW", traits: ["cave", "mountain"] },
+    "Ice Wyrm": { set: "1E", traits: ["cave", "cold"] },
+    "Ironbound": { set: "SoN", traits: ["building", "civilized"] },
+    "Kobold": { set: "1E", traits: ["building", "cave"] },
+    "Lava Beetle": { set: "CoD", traits: ["cave", "hot"] },
+    "Manticore": { set: "1E", traits: ["dark", "wilderness"] },
+    "Medusa": { set: "1E", traits: ["building", "cursed"] },
+    "Merriod": { set: "2E", traits: ["water", "wilderness"] },
+    "Naga": { set: "1E", traits: ["cave", "water"] },
+    "Ogre": { set: "1E", traits: ["building", "cave"] },
+    "Plague Worm": { set: "TF", traits: ["cave", "water"] },
+    "Rat Swarm": { set: "SoN", traits: ["building", "dark"] },
+    "Razorwing": { set: "OotO", traits: ["cave", "wilderness"] },
+    "Shade": { set: "1E", traits: ["cursed", "dark"] },
+    "Shadow Dragon": { set: "2E", traits: ["cave", "dark"] },
+    "Skeleton Archer": { set: "1E", traits: ["civilized", "cursed"] },
+    "Sorcerer": { set: "1E", traits: ["building", "civilized"] },
+    "Troll": { set: "1E", traits: ["cave", "mountain"] },
+    "Volucrix Reaver": { set: "LoR", traits: ["building", "mountain"] },
+    "Wendigo": { set: "1E", traits: ["cave", "cold"] },
+    "Ynfernal Hulk": { set: "SoN", traits: ["cursed", "hot"] },
+    "Zombie": { set: "2E", traits: ["building", "cursed"] }
+};
+for (monsterName in MONSTERS) { 
+    MONSTERS[monsterName].name = monsterName;
+}
+
+MONSTERS_PICKED = {};
+
+function drawCard(deck, $img, $drawn_count, $left_count) {
+    var currentCard = $img.attr("src");
+    var nextCard = deck.draw();
+
+    if (currentCard === nextCard) {
+        nextCard = deck.draw();
+    }
+
+    $img.attr("src", nextCard);
+    $drawn_count.text(deck.discard.length);
+    $left_count.text(deck.deck.length);
+}
+function drawOverlordCard() {
+    drawCard(NDESCENT.OverlordDeck, $("#overlord-deck-card"), 
+             $("#overlord-deck-count .deck-drawn"), 
+             $("#overlord-deck-count .deck-left"));
+}
+
+function flipBackCard(deck, $img, $drawn_count, $left_count) {
+    var currentCard = $img.attr("src");
+    var backCard = deck.flipBack();
+
+    if (currentCard === backCard) {
+        backCard = deck.flipBack();
+    }
+
+    $img.attr("src", backCard);
+    drawn = deck.discard.length + 1;
+    left = deck.deck.length - 1;
+
+    $drawn_count.text(drawn);
+    $left_count.text(left);
+}
+function flipBackOverlordCard() { 
+    flipBackCard(NDESCENT.OverlordDeck, $("#overlord-deck-card"), 
+             $("#overlord-deck-count .deck-drawn"), 
+             $("#overlord-deck-count .deck-left"));
+}
+
+function pickRandom(a) {
+    return a[Math.floor(Math.random() * a.length)];
+}
+
+function pickMonster($ele, trait) {
+    var traitMonsters = [];
+    for (monsterName in MONSTERS) {
+        var monster = MONSTERS[monsterName];
+
+        if (monster.traits.indexOf(trait) !== -1) {
+            traitMonsters.push(monster);
+        }
+    }
+
+    var monster = pickRandom(traitMonsters);
+
+    delete MONSTERS[monster.name];
+
+    if (MONSTERS_PICKED[trait]) {
+        var prevMonster = MONSTERS_PICKED[trait];
+        MONSTERS[prevMonster.name] = prevMonster;
+    }
+
+    MONSTERS_PICKED[trait] = monster;
+
+    $ele.text(monster.name + " " + monster.set);
+}
+
+function pickClassDeck($ele) {
+    $ele.text(pickRandom(OVERLORD_CLASS_DECKS));
+}
+
+function pickPlotDeck($ele) {
+    $ele.text(pickRandom(PLOT_DECKS));
+}
+
+$(document).ready(function() {
+    $('#open-group-menu').click(function() {
+                                $('#panes').children().hide();
+                                $('#open-group-pane').show();
+                                });
+    $('#aov-deck-menu').click(function() {
+                              $('#panes').children().hide();
+                              $('#aov-deck-pane').show();
+                              });
+
+    $('#overlord_class_deck').on('click', function() { 
+                                 pickClassDeck($(this));
+                                 });
+
+    $('#overlord_plot_deck').on('click', function() { 
+                                pickPlotDeck($(this));
+                                });
+
+    $('#trait_building').on('click', function() {
+                            pickMonster($(this), 'building');
+                            });
+    $('#trait_cave').on('click', function() {
+                            pickMonster($(this), 'cave');
+                            });
+    $('#trait_civilized').on('click', function() {
+                            pickMonster($(this), 'civilized');
+                            });
+    $('#trait_cold').on('click', function() {
+                            pickMonster($(this), 'cold');
+                            });
+    $('#trait_cursed').on('click', function() {
+                            pickMonster($(this), 'cursed');
+                            });
+    $('#trait_dark').on('click', function() {
+                            pickMonster($(this), 'dark');
+                            });
+    $('#trait_hot').on('click', function() {
+                            pickMonster($(this), 'hot');
+                            });
+    $('#trait_mountain').on('click', function() {
+                            pickMonster($(this), 'mountain');
+                            });
+    $('#trait_water').on('click', function() {
+                            pickMonster($(this), 'water');
+                            });
+    $('#trait_wilderness').on('click', function() {
+                            pickMonster($(this), 'wilderness');
+                            });
+
+    $("#overlord-deck-draw").click(function() {
+                                      drawOverlordCard();
+                                      });
+    $("#overlord-deck-flip-back").click(function() {
+                                           flipBackOverlordCard();
+                                           });
+    $("#overlord-deck-reshuffle").click(function() {
+                                           NDESCENT.OverlordDeck.reshuffle();
+                                           drawOverlordCard();
+                         });
+
+    drawOverlordCard();
+
+});
+
+
+</script>
+
+</head>
+
+<body>
+
+<ul>
+  <li><a id="open-group-menu" href="#">Open Group Selector</a></li>
+  <li><a id="aov-deck-menu" href="#">Automated Overlord Deck</a></li>
+</ul>
+
+<div id="panes">
+  <div id="open-group-pane">
+    <p>
+    <label>Overlord Class Deck:</label>
+    <button id="overlord_class_deck">Click to Pick</button>
+    </p>
+
+    <p>
+    <label>Overlord Plot Deck:</label>
+    <button id="overlord_plot_deck">Click to Pick</button>
+    </p>
+
+
+    <p><label><img class="trait" src="images/trait-building.png" /> Building:</label>
+    <button id="trait_building">Click to Pick</button>
+    </p>
+    <p><label><img class="trait" src="images/trait-cave.png" /> Cave:</label>
+    <button id="trait_cave">Click to Pick</button>
+    </p>
+    <p><label><img class="trait" src="images/trait-civilized.png" /> Civilized:</label>
+    <button id="trait_civilized">Click to Pick</button>
+    </p>
+    <p><label><img class="trait" src="images/trait-cold.png" /> Cold:</label>
+    <button id="trait_cold">Click to Pick</button>
+    </p>
+    <p><label><img class="trait" src="images/trait-cursed.png" /> Cursed:</label>
+    <button id="trait_cursed">Click to Pick</button>
+    </p>
+    <p><label><img class="trait" src="images/trait-dark.png" /> Dark:</label>
+    <button id="trait_dark">Click to Pick</button>
+    </p>
+    <p><label><img class="trait" src="images/trait-hot.png" /> Hot:</label>
+    <button id="trait_hot">Click to Pick</button>
+    </p>
+    <p><label><img class="trait" src="images/trait-mountain.png" /> Mountain:</label>
+    <button id="trait_mountain">Click to Pick</button>
+    </p>
+    <p><label><img class="trait" src="images/trait-water.png" /> Water:</label>
+    <button id="trait_water">Click to Pick</button>
+    </p>
+    <p><label><img class="trait" src="images/trait-wilderness.png" /> Wilderness:</label>
+    <button id="trait_wilderness">Click to Pick</button>
+    </p>
+  </div>
+
+  <div id="aov-deck-pane">
+    <h2>Automated Overlord Deck</h2>
+    <button id="overlord-deck-draw">Draw</button>
+    <button id="overlord-deck-flip-back">Flip Back</button>
+
+    <span id="overlord-deck-count">
+      <span class="deck-drawn">0</span>
+      /
+      <span class="deck-left">0</span>
+    </span>
+
+    <button id="overlord-deck-reshuffle">Reshuffle</button>
+    <br />
+    <div id="overlord-deck">
+      <img id="overlord-deck-card" />
+    </div>
+  </div>
+
+</div>
+
+</body>
+</html>
